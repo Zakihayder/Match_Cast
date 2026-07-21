@@ -1,0 +1,56 @@
+.upload-page {
+  min-height: calc(100vh - 72px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.upload-container { max-width: 640px; width: 100%; }
+.upload-header { text-align: center; margin-bottom: 32px; }
+.upload-header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+.upload-header p { font-size: 1rem; }
+
+.drop-zone {
+  padding: 48px 32px; text-align: center;
+  border: 2px dashed var(--border-glass); border-radius: var(--radius-xl);
+  transition: all var(--transition-base); cursor: pointer; position: relative;
+}
+.drop-zone.drag-active { border-color: var(--accent); background: rgba(0,255,120,0.03); box-shadow: var(--shadow-glow); }
+.drop-zone.has-file { border-style: solid; border-color: rgba(0,255,120,0.2); }
+.drop-content { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.drop-icon {
+  width: 72px; height: 72px; display: flex; align-items: center; justify-content: center;
+  background: var(--accent-dim); border: 1px solid rgba(0,255,120,0.15);
+  border-radius: var(--radius-lg); color: var(--accent); margin-bottom: 8px;
+}
+.drop-content h3 { font-size: 1.3rem; font-weight: 700; }
+.drop-hint { font-size: 0.78rem; margin-top: 8px; }
+
+.file-preview { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.file-info {
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+  background: rgba(0,255,120,0.05); border: 1px solid rgba(0,255,120,0.15);
+  border-radius: var(--radius-md); width: 100%; max-width: 400px;
+}
+.file-name { font-weight: 600; font-size: 0.9rem; }
+.file-size { font-size: 0.8rem; }
+.file-info .btn-icon { margin-left: auto; }
+
+.upload-progress-section { width: 100%; max-width: 400px; }
+.progress-label { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 0.85rem; font-weight: 500; }
+.progress-label span { display: flex; align-items: center; gap: 6px; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spinner { animation: spin 1s linear infinite; }
+
+.upload-error { margin-top: 16px; padding: 12px 20px; background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.2); border-radius: var(--radius-md); color: var(--danger); font-size: 0.85rem; text-align: center; }
+
+.upload-info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 32px; }
+.info-card { padding: 20px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.info-icon { color: var(--accent); }
+.info-card h4 { font-size: 0.82rem; font-weight: 700; }
+.info-card p { font-size: 0.75rem; line-height: 1.5; }
+
+@media (max-width: 640px) {
+  .upload-info-grid { grid-template-columns: 1fr; }
+  .drop-zone { padding: 32px 20px; }
+}

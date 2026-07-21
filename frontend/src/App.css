@@ -1,0 +1,12 @@
+/* ========================================
+   App Layout
+   ======================================== */
+.app {
+  min-height: 100vh;
+  position: relative;
+}
+
+.main-content {
+  padding-top: 72px; /* navbar height */
+  min-height: 100vh;
+}
