@@ -14,3 +14,24 @@ build/
 **/__pycache__
 **/*.py[cod]
 **/*.log
+
+# Exclude large data directories and artifacts not needed at runtime
+data/
+data/**
+data/models/
+data/outputs/
+data/videos/
+
+# Notebooks, tests and local caches
+notebooks/
+tests/
+.pytest_cache/
+
+# Media artifacts
+*.mp4
+*.mov
+*.avi
+
+# Editor/project config
+.vscode/
+.idea/
