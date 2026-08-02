@@ -1,5 +1,3 @@
-"""MatchCast AI — Intelligence Module (Phase 4)
+"""MatchCast AI — Intelligence Layer (AI Coach + Player Summaries)."""
 
-AI Coach logic, match chat, player summaries.
-PLACEHOLDER — will be implemented in Phase 4.
-"""
+from intelligence.coach import AICoach, aggregate_match_stats, coach_status

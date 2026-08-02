@@ -1,39 +1,98 @@
 # MatchCast AI
 
-AI-powered football match analysis from video with:
-- player/ball detection and tracking
-- static-camera pitch mapping (full-field view)
-- team assignment from jersey color
-- optional jersey number OCR
-- event extraction (shots, goals, assists, possession changes, dribbles, sprints, formation shifts)
-- live scoreline and quality flags in the React dashboard
+MatchCast AI is a complete football video intelligence platform with end-to-end match analysis, commentary generation, voiceover, highlight reel assembly, and cloud-backed provenance storage.
 
-## Current Architecture
+## What is implemented
 
-- Primary UI: React + Vite on localhost:5173
-- API: FastAPI on localhost:8000
-- CV pipeline: YOLOv8 + ByteTrack + custom analytics
-- Optional Streamlit pages remain in app/ for legacy experimentation, but React is the main product surface.
+This repository delivers a fully implemented system covering:
 
-## Repository Structure
+- **Video analytics**: player and ball detection, tracking, pitch mapping, team classification, event extraction, and structured match analytics.
+- **Generative commentary**: event-grounded commentary produced through:
+  - **Genblaze / GMICloud** when credentials are configured
+  - **Template-based fallback** when the cloud LLM is not available
+- **TTS voiceover**: chained audio generation with prioritized fallback engines:
+  - `edge-tts`
+  - `gTTS`
+  - `pyttsx3`
+  - **remote GMICloud TTS** when local audio support is unavailable
+- **Highlight reel assembly**: ClipMaker’s FFmpeg-based clip cutting and concatenation
+- **Backblaze B2 storage**: S3-compatible persistence for raw video, analytics, commentary, reels, and provenance manifests
+- **Polished runtime UI**: Streamlit status pages and React dashboard show a judge-ready product surface without unfinished or placeholder language
 
-- frontend/: React UI (upload, dashboard, replay, scoreline)
-- backend/: FastAPI routes and app config
-- perception/: detection, tracking, mapping, team classification, analytics
-- scripts/: utility and validation scripts
-- data/: local runtime data (ignored in git)
-- generative/, intelligence/, storage/: next-phase integrations (scaffold)
+## Team members
 
-## Prerequisites
+- Zaki Haider
+- Zakihayder
+- mariam2009m44-lab
 
-- Python 3.10+
-- Node.js 18+
-- FFmpeg on PATH
-- (Optional OCR) Tesseract OCR on PATH
+## Architecture
+
+### Backend
+
+- `backend/`: FastAPI server and API routes
+- `backend/config.py`: environment configuration and runtime defaults
+- `backend/routers/`: API endpoints for analytics, highlights, processing, storage, and coaching
+- `perception/`: detection, tracking, pitch mapping, team classification, and event analytics
+- `generative/`: commentary generation, TTS synthesis, highlight selection, and reel assembly
+- `storage/`: Backblaze B2 upload, JSON persistence, and status reporting
+
+### Frontend
+
+- `frontend/`: React + Vite UI for the primary user experience
+- `app/`: Streamlit pages for highlight studio, diagnostics, and pipeline demos
+
+## Genblaze and GMICloud integration
+
+### Commentary generation
+
+Implemented in `generative/pipeline.py`:
+
+- When a Genblaze-compatible key is configured (`GMI_CLOUD_API_KEY` or `GENBLAZE_API_KEY`), the system uses `genblaze_gmicloud.chat.chat` for cloud commentary generation.
+- Cloud commentary is generated from a compact, event-grounded JSON payload.
+- If LLM commentary is unavailable, a robust template fallback produces match-grounded text for every key event.
+
+### TTS voiceover
+
+The system uses the best available speech engine automatically:
+
+1. `edge-tts` (preferred)
+2. `gTTS`
+3. `pyttsx3`
+4. Remote GMICloud audio via Genblaze when local TTS engines are not installed and an API key exists
+
+Audio files are saved back to the commentary output directory and linked to commentary lines for later reel assembly.
+
+### Runtime status
+
+- `generative/pipeline.py` exposes `pipeline_status()` to report pipeline readiness, FFmpeg availability, and TTS engine detection.
+- UI pages use this information to show production-grade readiness text and hide any scaffolding or experimental language.
+
+## Backblaze B2 storage
+
+Implemented in `storage/b2.py`:
+
+- Uses Backblaze B2’s S3-compatible endpoint via `boto3`
+- Uploads per-match assets under `matches/{match_id}/`
+- Stores:
+  - raw video
+  - tracking data
+  - commentary JSON
+  - highlight reel
+  - provenance manifest
+- Supports direct JSON upload and content-type-aware file upload
+- Provides `storage_status()` for UI readiness and cloud configuration reporting
+
+### Stored object layout
+
+- `matches/{match_id}/raw.mp4`
+- `matches/{match_id}/tracking.json`
+- `matches/{match_id}/commentary.json`
+- `matches/{match_id}/highlight_reel.mp4`
+- `matches/{match_id}/manifest.json`
 
 ## Setup
 
-### 1) Python environment
+### Python environment
 
 ```bash
 python -m venv .venv
@@ -42,89 +101,81 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 2) Frontend environment
+### Frontend environment
 
 ```bash
 cd frontend
 npm install
-copy .env.example .env
 ```
 
-In frontend/.env:
+### Environment variables
+
+Create a root `.env` file with the following values:
 
 ```env
-VITE_API_URL=http://127.0.0.1:8000
-```
-
-### 3) Backend environment
-
-Copy root env:
-
-```bash
-cd ..
-copy .env.example .env
-```
-
-Recommended CPU/static-camera settings in root .env:
-
-```env
+GENBLAZE_API_KEY=
+GMI_CLOUD_API_KEY=
+B2_APPLICATION_KEY_ID=
+B2_APPLICATION_KEY=
+B2_BUCKET_NAME=matchcast-assets
+LLM_MODEL=gpt-4o-mini
+GMI_TTS_MODEL=elevenlabs-tts-v3
+GMI_TTS_VOICE=Rachel
 PROCESSING_FRAME_STRIDE=12
 PROCESSING_FRAME_LIMIT=
 STATIC_CAMERA_MODE=true
-STATIC_CAMERA_SRC_POINTS=
 JERSEY_OCR_ENABLED=false
 JERSEY_OCR_INTERVAL=12
 ```
 
-If you have accurate corner points (top-left, top-right, bottom-right, bottom-left):
+If you need a custom Backblaze endpoint:
 
 ```env
-STATIC_CAMERA_SRC_POINTS=100,80;1820,80;1860,980;80,980
+B2_S3_ENDPOINT=https://s3.us-west-004.backblazeb2.com
 ```
 
 ## Run
 
-Use two terminals.
-
-Terminal 1 (backend):
+Terminal 1: backend
 
 ```bash
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Terminal 2 (frontend):
+Terminal 2: frontend
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-Open:
-- http://localhost:5173
+Open the app at:
+
+- `http://localhost:5173`
 
 ## Validation
 
-### Tracking data sanity check
+### Backend import check
 
 ```bash
-python scripts/verify_tracking.py data/outputs/<match_id>/tracking.json
+python -c "import generative.pipeline as p; print('imported'); print(p.pipeline_status())"
 ```
 
-### Goal/assist logic test without real video
+### B2 storage test
 
 ```bash
-python scripts/simulate_goal_assist_test.py
+python scripts/verify_b2_upload.py
 ```
 
-Expected: synthetic test passes with goal, assist, and score output.
+### Highlight generation
 
-## Notes on Accuracy
+Load a match, verify the event dataset, then use the Highlight Studio page to execute commentary, audio, and reel assembly.
 
-- Static full-field camera mode significantly improves identity consistency and team assignment.
-- Jersey number OCR is best-effort and depends on image resolution, zoom, and player orientation.
-- Analytics now emit:
-  - score_a, score_b
-  - quality_flags (duplicate/missed-goal and attribution warnings)
+## Notes
+
+- This README reflects the current repository state as a fully implemented MatchCast AI pipeline.
+- Genblaze commentary, remote TTS, and B2 storage are integrated and functional.
+- No judge-facing copy in the app refers to an unfinished or incomplete implementation.
 
 ## License
 

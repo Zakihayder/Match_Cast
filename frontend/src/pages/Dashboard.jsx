@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3, Users, Brain, Clock, Target, TrendingUp,
-  Play, Pause, RotateCcw, Activity, Shield, Zap, AlertTriangle, Footprints
+  Play, Pause, RotateCcw, Activity, Shield, Zap, AlertTriangle, Footprints,
+  Film, Download, Volume2, FileText, Sparkles, Cloud, Upload, ExternalLink,
+  HardDrive, CheckCircle
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -14,8 +16,10 @@ const API_BASE_URL = `${API_BASE}/api`;
 const tabs = [
   { id: 'overview', label: 'Overview', icon: <BarChart3 size={16} /> },
   { id: 'timeline', label: 'Timeline', icon: <Clock size={16} /> },
+  { id: 'highlights', label: 'Highlights', icon: <Film size={16} /> },
   { id: 'coach', label: 'AI Coach', icon: <Brain size={16} /> },
   { id: 'players', label: 'Players', icon: <Users size={16} /> },
+  { id: 'storage', label: 'B2 Storage', icon: <Cloud size={16} /> },
 ];
 
 // Map event type to icon
@@ -374,12 +378,19 @@ export default function Dashboard() {
           {activeTab === 'coach' && (
             <CoachTab 
               analytics={analytics}
+              matchId={matchId}
             />
+          )}
+          {activeTab === 'highlights' && (
+            <HighlightsTab matchId={matchId} />
           )}
           {activeTab === 'players' && (
             <PlayersTab 
               playerStats={analytics?.player_stats || {}}
             />
+          )}
+          {activeTab === 'storage' && (
+            <StorageTab matchId={matchId} />
           )}
         </div>
       </div>
@@ -610,92 +621,388 @@ function TimelineTab({ events, jumpToTimestamp, formatTime }) {
   );
 }
 
-function CoachTab({ analytics }) {
-  const possessionPct = analytics?.possession_a || 50;
-  const events = analytics?.events || [];
-  const shotsA = events.filter((e) => e.type === 'shot' && e.team === 'A').length;
-  const shotsB = events.filter((e) => e.type === 'shot' && e.team === 'B').length;
-  const shiftsA = events.filter((e) => e.type === 'formation_shift' && e.team === 'A').length;
-  const shiftsB = events.filter((e) => e.type === 'formation_shift' && e.team === 'B').length;
-  const sprintsA = Object.values(analytics?.player_stats || {})
-    .filter((p) => p.team === 'A')
-    .reduce((acc, curr) => acc + (curr.sprint_count || 0), 0);
-  const sprintsB = Object.values(analytics?.player_stats || {})
-    .filter((p) => p.team === 'B')
-    .reduce((acc, curr) => acc + (curr.sprint_count || 0), 0);
+function CoachTab({ analytics, matchId }) {
+  const [coachData, setCoachData] = useState(null);
+  const [coachLoading, setCoachLoading] = useState(true);
+  const [coachError, setCoachError] = useState(null);
 
-  const recs = [];
-  if (shotsA !== shotsB) {
-    const leading = shotsA > shotsB ? 'A' : 'B';
-    const trailing = leading === 'A' ? 'B' : 'A';
-    recs.push({
-      title: 'Final-Third Chance Creation',
-      body: `Team ${trailing} is trailing in logged shots. Focus on earlier ball progression into the final third to close chance volume.`,
-      cite: `Based on: shots logged Team A ${shotsA} vs Team B ${shotsB}.`,
-      icon: <Target size={16} className="text-accent" />,
-    });
+  useEffect(() => {
+    let cancelled = false;
+    setCoachLoading(true);
+    setCoachError(null);
+
+    fetch(`${API_BASE_URL}/coach/${matchId}/coach`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Coach API error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setCoachData(data);
+          setCoachLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('[CoachTab] Error:', err);
+        if (!cancelled) {
+          setCoachError(err.message);
+          setCoachLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [matchId]);
+
+  if (coachLoading) {
+    return (
+      <motion.div className="tab-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className="glass-card-static" style={{ padding: 48, textAlign: 'center' }}>
+          <Brain size={28} className="text-accent pulse-animation" />
+          <p className="text-secondary" style={{ marginTop: 12 }}>
+            Analyzing match data for tactical insights...
+          </p>
+        </div>
+      </motion.div>
+    );
   }
 
-  if (Math.abs(possessionPct - 50) >= 8) {
-    const trailing = possessionPct > 50 ? 'B' : 'A';
-    recs.push({
-      title: 'Possession Control',
-      body: `Team ${trailing} should prioritize safer midfield circulation after regains to reduce immediate turnovers.`,
-      cite: `Based on: possession split Team A ${possessionPct}% vs Team B ${100 - possessionPct}%.`,
-      icon: <Shield size={16} className="text-accent" />,
-    });
+  if (coachError) {
+    return (
+      <motion.div className="tab-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div className="glass-card-static" style={{ padding: 28, textAlign: 'center' }}>
+          <AlertTriangle size={24} style={{ color: 'var(--team-b)' }} />
+          <p className="text-secondary" style={{ marginTop: 8 }}>
+            Could not load AI Coach: {coachError}
+          </p>
+        </div>
+      </motion.div>
+    );
   }
 
-  if (shiftsA + shiftsB > 0) {
-    recs.push({
-      title: 'Shape Stability',
-      body: 'Frequent formation shifts suggest unstable spacing. Reinforce line compactness during transitions.',
-      cite: `Based on: formation shifts Team A ${shiftsA}, Team B ${shiftsB}.`,
-      icon: <TrendingUp size={16} className="text-accent" />,
-    });
-  }
+  const recs = coachData?.recommendations || [];
+  const mode = coachData?.mode || 'heuristic';
+  const scores = coachData?.performance_scores || { A: 7.2, B: 7.2 };
 
-  if (recs.length === 0) {
-    recs.push({
-      title: 'Transition Intensity',
-      body: 'Use sprint bursts selectively around pressing triggers instead of sustained chasing to keep structure intact.',
-      cite: `Based on: sprint events Team A ${sprintsA}, Team B ${sprintsB}; possession Team A ${possessionPct}% vs Team B ${100 - possessionPct}%.`,
-      icon: <Zap size={16} className="text-accent" />,
-    });
-  }
+  const categoryColors = {
+    tactical: { bg: 'rgba(99,102,241,0.15)', color: '#818cf8', border: 'rgba(99,102,241,0.3)' },
+    attacking: { bg: 'rgba(0,255,120,0.1)', color: 'var(--accent)', border: 'rgba(0,255,120,0.25)' },
+    defensive: { bg: 'rgba(255,107,107,0.12)', color: 'var(--team-b)', border: 'rgba(255,107,107,0.25)' },
+    physical: { bg: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: 'rgba(251,191,36,0.25)' },
+    set_piece: { bg: 'rgba(103,232,249,0.12)', color: '#67e8f9', border: 'rgba(103,232,249,0.25)' },
+  };
 
-  const performanceScore = Math.max(6.5, Math.min(9.4, 7.2 + ((possessionPct - 50) / 30) + ((shotsA - shotsB) / 12))).toFixed(1);
-  
+  const priorityDot = { high: '#ff6b6b', medium: '#fbbf24', low: '#4ade80' };
+
+  const categoryIcon = (cat) => {
+    if (cat === 'attacking') return <Target size={15} />;
+    if (cat === 'defensive') return <Shield size={15} />;
+    if (cat === 'physical') return <Zap size={15} />;
+    return <TrendingUp size={15} />;
+  };
+
   return (
     <motion.div className="tab-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="coach-grid">
         <div className="glass-card-static" style={{ padding: 28 }}>
-          <h3 className="card-title"><Brain size={16} /> AI Coach Recommendations</h3>
-          <div className="coach-content">
-            {recs.map((rec, idx) => (
-              <div className="coach-rec" key={idx}>
-                <div className="rec-header">
-                  {rec.icon}
-                  <strong>{rec.title}</strong>
-                </div>
-                <p>{rec.body}</p>
-                <span className="rec-citation text-muted">📊 {rec.cite}</span>
-              </div>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <h3 className="card-title" style={{ marginBottom: 0 }}>
+              <Brain size={16} /> AI Coach Recommendations
+            </h3>
+            <span style={{
+              fontSize: '0.7rem', padding: '3px 10px', borderRadius: 999,
+              background: mode === 'llm' ? 'rgba(0,255,120,0.12)' : 'rgba(251,191,36,0.12)',
+              color: mode === 'llm' ? 'var(--accent)' : '#fbbf24',
+              border: `1px solid ${mode === 'llm' ? 'rgba(0,255,120,0.3)' : 'rgba(251,191,36,0.3)'}`,
+              fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px',
+            }}>
+              {mode === 'llm' ? '⚡ LLM-Powered' : '📊 Data-Driven'}
+            </span>
           </div>
-          <p className="text-muted" style={{ fontSize: '0.78rem', marginTop: 20, fontStyle: 'italic' }}>
-            Recommendations above are generated from tracked events and team stats for this match.
+
+          <div className="coach-content">
+            {recs.map((rec, idx) => {
+              const cat = rec.category || 'tactical';
+              const pri = rec.priority || 'medium';
+              const catStyle = categoryColors[cat] || categoryColors.tactical;
+              return (
+                <motion.div
+                  className="coach-rec"
+                  key={idx}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.08 }}
+                  style={{ borderLeftColor: catStyle.color }}
+                >
+                  <div className="rec-header">
+                    <span style={{ color: catStyle.color }}>{categoryIcon(cat)}</span>
+                    <strong>{rec.title}</strong>
+                    <span style={{
+                      marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                      <span style={{
+                        fontSize: '0.65rem', padding: '2px 8px', borderRadius: 999,
+                        background: catStyle.bg, color: catStyle.color, border: `1px solid ${catStyle.border}`,
+                        fontWeight: 600, textTransform: 'capitalize',
+                      }}>{cat}</span>
+                      <span style={{
+                        width: 7, height: 7, borderRadius: '50%',
+                        background: priorityDot[pri] || priorityDot.medium,
+                      }} title={`${pri} priority`} />
+                    </span>
+                  </div>
+                  <p>{rec.body}</p>
+                  <span className="rec-citation text-muted">📊 {rec.citation}</span>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <p className="text-muted" style={{ fontSize: '0.76rem', marginTop: 20, fontStyle: 'italic' }}>
+            {mode === 'llm'
+              ? 'Recommendations generated by AI, grounded in real tracked match data.'
+              : 'Recommendations generated from heuristic analysis of tracked match events and stats.'}
           </p>
         </div>
 
-        <div className="glass-card-static coach-score-card">
-          <h3 className="card-title"><Activity size={16} /> Performance Score</h3>
-          <div className="score-circle">
-            <span className="score-big font-display">{performanceScore}</span>
-            <span className="score-label text-muted">/10</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="glass-card-static coach-score-card">
+            <h3 className="card-title"><Activity size={16} /> Team A Rating</h3>
+            <div className="score-circle">
+              <span className="score-big font-display">{scores.A}</span>
+              <span className="score-label text-muted">/10</span>
+            </div>
           </div>
-          <p className="text-secondary" style={{ textAlign: 'center', fontSize: '0.85rem' }}>Overall Team Rating</p>
+          <div className="glass-card-static coach-score-card">
+            <h3 className="card-title" style={{ color: 'var(--team-b)' }}>
+              <Activity size={16} /> Team B Rating
+            </h3>
+            <div className="score-circle">
+              <span className="score-big font-display" style={{ color: 'var(--team-b)' }}>{scores.B}</span>
+              <span className="score-label text-muted">/10</span>
+            </div>
+          </div>
         </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function HighlightsTab({ matchId }) {
+  const [hlStatus, setHlStatus] = useState(null);
+  const [commentary, setCommentary] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [polling, setPolling] = useState(false);
+
+  // Check status on mount
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/highlights/${matchId}/status`)
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setHlStatus(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [matchId]);
+
+  // Load commentary if already generated
+  useEffect(() => {
+    if (hlStatus?.phase === 'complete') {
+      fetch(`${API_BASE_URL}/highlights/${matchId}/commentary`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => { if (data) setCommentary(data.commentary); })
+        .catch(() => {});
+    }
+  }, [hlStatus?.phase, matchId]);
+
+  // Poll while generating
+  useEffect(() => {
+    if (!polling) return;
+    const iv = setInterval(() => {
+      fetch(`${API_BASE_URL}/highlights/${matchId}/status`)
+        .then((r) => r.json())
+        .then((data) => {
+          setHlStatus(data);
+          if (data.phase === 'complete' || data.phase === 'failed') {
+            setPolling(false);
+            setGenerating(false);
+          }
+        })
+        .catch(() => {});
+    }, 1500);
+    return () => clearInterval(iv);
+  }, [polling, matchId]);
+
+  const handleGenerate = () => {
+    setGenerating(true);
+    setPolling(true);
+    fetch(`${API_BASE_URL}/highlights/${matchId}/generate`, { method: 'POST' })
+      .then((r) => r.json())
+      .catch((err) => {
+        setGenerating(false);
+        setPolling(false);
+        console.error('[Highlights]', err);
+      });
+  };
+
+  const isComplete = hlStatus?.phase === 'complete';
+  const isFailed = hlStatus?.phase === 'failed';
+  const isRunning = generating || (hlStatus && !['complete', 'failed', 'not_started'].includes(hlStatus.phase));
+  const progressPct = hlStatus ? Math.round((hlStatus.progress || 0) * 100) : 0;
+
+  // Event type to icon (reuse from timeline)
+  const commentaryIcon = (type) => {
+    if (type === 'goal') return <Target size={14} style={{ color: 'var(--accent)' }} />;
+    if (type === 'shot') return <Target size={14} style={{ color: 'var(--team-b)' }} />;
+    if (type === 'sprint') return <Zap size={14} className="text-accent" />;
+    if (type === 'dribble') return <Footprints size={14} style={{ color: '#f59e0b' }} />;
+    if (type === 'possession_change') return <Shield size={14} style={{ color: 'var(--team-a)' }} />;
+    return <Activity size={14} />;
+  };
+
+  const formatTime = (s) => {
+    if (isNaN(s)) return '00:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <motion.div className="tab-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* Generate / Status Card */}
+        <div className="glass-card-static" style={{ padding: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 className="card-title" style={{ marginBottom: 0 }}>
+              <Film size={16} /> Highlight Reel Generator
+            </h3>
+            {isComplete && (
+              <span style={{
+                fontSize: '0.7rem', padding: '3px 10px', borderRadius: 999,
+                background: 'rgba(0,255,120,0.12)', color: 'var(--accent)',
+                border: '1px solid rgba(0,255,120,0.3)', fontWeight: 600,
+              }}>
+                <Sparkles size={10} /> Generated
+              </span>
+            )}
+          </div>
+
+          {!isComplete && !isRunning && (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <p className="text-secondary" style={{ marginBottom: 16, fontSize: '0.9rem' }}>
+                Generate an AI-powered highlight reel from the most important match moments.
+                Commentary will be created for each key event.
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={handleGenerate}
+                disabled={generating}
+                style={{ padding: '10px 28px', fontSize: '0.9rem', gap: 8, display: 'inline-flex', alignItems: 'center' }}
+              >
+                <Sparkles size={16} /> Generate Highlights
+              </button>
+              {isFailed && hlStatus?.error && (
+                <p style={{ color: 'var(--team-b)', fontSize: '0.8rem', marginTop: 12 }}>
+                  {hlStatus.error}
+                </p>
+              )}
+            </div>
+          )}
+
+          {isRunning && (
+            <div style={{ padding: '12px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <Film size={18} className="text-accent pulse-animation" />
+                <span className="text-secondary" style={{ fontSize: '0.88rem' }}>
+                  {hlStatus?.message || 'Starting generation...'}
+                </span>
+              </div>
+              <div className="progress-container">
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ width: `${progressPct}%` }} />
+                </div>
+                <span className="progress-pct font-display">{progressPct}%</span>
+              </div>
+            </div>
+          )}
+
+          {isComplete && (
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {hlStatus?.reel_available && (
+                <>
+                  <a
+                    href={`${API_BASE_URL}/highlights/${matchId}/reel`}
+                    download
+                    className="btn btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+                  >
+                    <Download size={16} /> Download Highlight Reel
+                  </a>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={handleGenerate}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <RotateCcw size={14} /> Regenerate
+                  </button>
+                </>
+              )}
+              {!hlStatus?.reel_available && (
+                <p className="text-muted" style={{ fontSize: '0.82rem' }}>
+                  <AlertTriangle size={12} /> Video reel not available (FFmpeg required).
+                  Commentary was generated successfully below.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Video Player */}
+        {isComplete && hlStatus?.reel_available && (
+          <div className="glass-card-static" style={{ padding: 28 }}>
+            <h3 className="card-title"><Play size={16} /> Highlight Reel</h3>
+            <video
+              controls
+              style={{
+                width: '100%', maxHeight: 420, borderRadius: 'var(--radius-md)',
+                background: '#000', marginTop: 8,
+              }}
+              src={`${API_BASE_URL}/highlights/${matchId}/reel`}
+            />
+          </div>
+        )}
+
+        {/* Commentary */}
+        {commentary && commentary.length > 0 && (
+          <div className="glass-card-static" style={{ padding: 28 }}>
+            <h3 className="card-title"><FileText size={16} /> Match Commentary</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+              {commentary.map((line, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    padding: '12px 14px', borderRadius: 'var(--radius-md)',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderLeft: `3px solid ${line.event_type === 'goal' ? 'var(--accent)' : 'var(--border-glass)'}`,
+                  }}
+                >
+                  <span style={{ minWidth: 42, fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)' }}>
+                    {formatTime(line.timestamp)}
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    {commentaryIcon(line.event_type)}
+                  </span>
+                  <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {line.text}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -736,6 +1043,203 @@ function PlayersTab({ playerStats }) {
             </div>
           ))}
         </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function StorageTab({ matchId }) {
+  const [storageStatus, setStorageStatus] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [assets, setAssets] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [polling, setPolling] = useState(false);
+
+  // Check storage config + upload status on mount
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/storage/status`)
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setStorageStatus(data); })
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/storage/${matchId}/upload-status`)
+      .then((r) => r.json())
+      .then((data) => { if (!cancelled) setUploadStatus(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [matchId]);
+
+  // Load assets if upload is complete
+  useEffect(() => {
+    if (uploadStatus?.phase === 'complete') {
+      fetch(`${API_BASE_URL}/storage/${matchId}/assets`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => { if (data) setAssets(data.assets); })
+        .catch(() => {});
+    }
+  }, [uploadStatus?.phase, matchId]);
+
+  // Poll while uploading
+  useEffect(() => {
+    if (!polling) return;
+    const iv = setInterval(() => {
+      fetch(`${API_BASE_URL}/storage/${matchId}/upload-status`)
+        .then((r) => r.json())
+        .then((data) => {
+          setUploadStatus(data);
+          if (data.phase === 'complete' || data.phase === 'failed') {
+            setPolling(false);
+            setUploading(false);
+          }
+        })
+        .catch(() => {});
+    }, 2000);
+    return () => clearInterval(iv);
+  }, [polling, matchId]);
+
+  const handleUpload = () => {
+    setUploading(true);
+    setPolling(true);
+    fetch(`${API_BASE_URL}/storage/${matchId}/upload`, { method: 'POST' })
+      .then((r) => r.json())
+      .catch(() => { setUploading(false); setPolling(false); });
+  };
+
+  const formatSize = (bytes) => {
+    if (!bytes) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1048576).toFixed(1)} MB`;
+  };
+
+  const isConfigured = storageStatus?.configured;
+  const isComplete = uploadStatus?.phase === 'complete';
+  const isFailed = uploadStatus?.phase === 'failed';
+  const isRunning = uploading || (uploadStatus && !['complete', 'failed', 'not_started'].includes(uploadStatus.phase));
+  const progressPct = uploadStatus ? Math.round((uploadStatus.progress || 0) * 100) : 0;
+
+  const fileIcon = (name) => {
+    if (name.endsWith('.mp4')) return <Film size={14} />;
+    if (name.endsWith('.json')) return <FileText size={14} />;
+    return <HardDrive size={14} />;
+  };
+
+  return (
+    <motion.div className="tab-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        {/* B2 Status Card */}
+        <div className="glass-card-static" style={{ padding: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h3 className="card-title" style={{ marginBottom: 0 }}>
+              <Cloud size={16} /> Backblaze B2 Cloud Storage
+            </h3>
+            {isConfigured && (
+              <span style={{
+                fontSize: '0.7rem', padding: '3px 10px', borderRadius: 999,
+                background: 'rgba(0,255,120,0.12)', color: 'var(--accent)',
+                border: '1px solid rgba(0,255,120,0.3)', fontWeight: 600,
+              }}>
+                <CheckCircle size={10} /> Connected
+              </span>
+            )}
+          </div>
+
+          {!isConfigured && (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <AlertTriangle size={24} style={{ color: '#fbbf24', marginBottom: 8 }} />
+              <p className="text-secondary" style={{ fontSize: '0.88rem' }}>
+                B2 credentials not configured. Add B2_APPLICATION_KEY_ID and B2_APPLICATION_KEY to your .env file.
+              </p>
+            </div>
+          )}
+
+          {isConfigured && !isComplete && !isRunning && (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <p className="text-secondary" style={{ marginBottom: 16, fontSize: '0.9rem' }}>
+                Upload all match assets (video, tracking data, commentary, highlights, provenance manifest) to Backblaze B2 for permanent cloud storage.
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={handleUpload}
+                disabled={uploading}
+                style={{ padding: '10px 28px', fontSize: '0.9rem', gap: 8, display: 'inline-flex', alignItems: 'center' }}
+              >
+                <Upload size={16} /> Upload to B2
+              </button>
+            </div>
+          )}
+
+          {isRunning && (
+            <div style={{ padding: '12px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <Cloud size={18} className="text-accent pulse-animation" />
+                <span className="text-secondary" style={{ fontSize: '0.88rem' }}>
+                  {uploadStatus?.message || 'Starting upload...'}
+                </span>
+              </div>
+              <div className="progress-container">
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ width: `${progressPct}%` }} />
+                </div>
+                <span className="progress-pct font-display">{progressPct}%</span>
+              </div>
+            </div>
+          )}
+
+          {isComplete && (
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
+                background: 'rgba(0,255,120,0.08)', borderRadius: 'var(--radius-md)',
+                border: '1px solid rgba(0,255,120,0.2)',
+              }}>
+                <CheckCircle size={16} style={{ color: 'var(--accent)' }} />
+                <span style={{ fontSize: '0.88rem' }}>
+                  {uploadStatus.asset_count} assets uploaded ({formatSize(uploadStatus.total_size_bytes)})
+                </span>
+              </div>
+              <button
+                className="btn btn-ghost"
+                onClick={handleUpload}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <RotateCcw size={14} /> Re-upload
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Assets List */}
+        {assets && assets.length > 0 && (
+          <div className="glass-card-static" style={{ padding: 28 }}>
+            <h3 className="card-title"><HardDrive size={16} /> Stored Assets</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+              {assets.map((asset, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', borderRadius: 'var(--radius-md)',
+                    background: 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  <span style={{ color: 'var(--accent)' }}>{fileIcon(asset.filename)}</span>
+                  <span style={{ flex: 1, fontSize: '0.85rem' }}>{asset.filename}</span>
+                  <span className="text-muted" style={{ fontSize: '0.78rem' }}>
+                    {formatSize(asset.size_bytes)}
+                  </span>
+                  <span className="text-muted" style={{ fontSize: '0.72rem' }}>
+                    {new Date(asset.last_modified).toLocaleDateString()}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );

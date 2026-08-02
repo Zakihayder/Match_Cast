@@ -17,10 +17,16 @@ REPO_ROOT = Path(__file__).resolve().parent
 # even if python-dotenv is not installed.
 try:
     from dotenv import load_dotenv
-
-    load_dotenv(REPO_ROOT / ".env")
 except Exception:
-    pass
+    load_dotenv = None
+
+
+def _reload_env() -> None:
+    if load_dotenv is not None:
+        load_dotenv(REPO_ROOT / ".env", override=True)
+
+
+_reload_env()
 
 
 # --- Genblaze / GMI Cloud (generative pipeline) ---
@@ -39,5 +45,9 @@ def genblaze_configured() -> bool:
 
 
 def b2_configured() -> bool:
-    """True if both B2 credential halves are present."""
-    return bool(B2_APPLICATION_KEY_ID and B2_APPLICATION_KEY)
+    """True if both B2 credential halves are present and not placeholder values."""
+    _reload_env()
+    placeholder_markers = {"your-b2-key-id-here", "your-b2-application-key-here"}
+    key_id = (os.getenv("B2_APPLICATION_KEY_ID", "") or "").strip()
+    key = (os.getenv("B2_APPLICATION_KEY", "") or "").strip()
+    return bool(key_id and key and key_id not in placeholder_markers and key not in placeholder_markers)

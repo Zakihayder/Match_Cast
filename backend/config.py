@@ -2,7 +2,7 @@
 MatchCast AI — Application Configuration
 
 Loads environment variables with sensible defaults.
-All external service configs are placeholder-ready.
+External service configuration is handled gracefully when values are absent.
 """
 
 import os

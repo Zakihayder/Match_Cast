@@ -1,0 +1,21 @@
+# Railway deployment config for MatchCast AI backend.
+# Leave projectId/serviceId blank if you will use the Railway UI to connect the repo.
+
+projectId = ""
+serviceId = ""
+
+[build]
+builder = "Docker"
+
+[deploy]
+command = "docker build -t matchcast-ai ."
+
+[variables]
+# Configure these in Railway environment variables rather than in git.
+# GENBLAZE_API_KEY = ""
+# GMI_CLOUD_API_KEY = ""
+# B2_APPLICATION_KEY_ID = ""
+# B2_APPLICATION_KEY = ""
+B2_BUCKET_NAME = "matchcast-assets"
+FRONTEND_URL = "https://<your-vercel-domain>"
+CORS_ORIGINS = "https://<your-vercel-domain>"

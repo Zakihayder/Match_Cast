@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.routers import matches, processing, analysis
+from backend.routers import matches, processing, analysis, coach, highlights, storage
 
 app = FastAPI(
     title="MatchCast AI",
@@ -43,6 +43,9 @@ async def health_check():
 app.include_router(matches.router, prefix="/api/matches", tags=["matches"])
 app.include_router(processing.router, prefix="/api/processing", tags=["processing"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
+app.include_router(coach.router, prefix="/api/coach", tags=["coach"])
+app.include_router(highlights.router, prefix="/api/highlights", tags=["highlights"])
+app.include_router(storage.router, prefix="/api/storage", tags=["storage"])
 
 
 if __name__ == "__main__":

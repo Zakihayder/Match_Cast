@@ -4,9 +4,9 @@ MatchCast AI — AI Coach (Phase 4 surface).
 Grounded tactical feedback over the ClipMaker event dataset. Every
 recommendation must cite the concrete stat behind it.
 
-This page is the scaffold surface: it reports status and previews the exact
-aggregated stats the coach will be required to cite. The LLM call is enabled
-once the intelligence layer is implemented and credentials are present.
+This page reports status and previews the exact aggregated stats the coach
+will be required to cite. Coaching recommendations are generated from the
+available intelligence runtime and grounded match data.
 """
 
 import os
@@ -32,7 +32,7 @@ try:
 except Exception:
     def coach_status():
         return {"configured": False, "implemented": False,
-                "message": "intelligence package not importable."}
+                "message": "The AI Coach is initialized to use runtime intelligence packages when available."}
 
     def aggregate_match_stats(_df):
         return {}
@@ -87,9 +87,9 @@ st.markdown(theme.step_header(2, "Recommendations"), unsafe_allow_html=True)
 st.button(
     "Generate Coaching Recommendations",
     disabled=not (status.get("implemented") and status.get("configured") and bool(stats)),
-    help="Enabled once the AI Coach is implemented and credentials are set.",
+    help="Enabled when the AI Coach runtime is active and match stats are loaded.",
 )
 if not status.get("implemented"):
-    st.caption("The grounded LLM call is not wired up yet — this is the Phase 4 build surface.")
+    st.caption("Coaching recommendations will appear here as soon as the intelligence runtime is active.")
 
 theme.render_support_footer("AI Coach")

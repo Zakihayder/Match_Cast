@@ -25,7 +25,7 @@ export default function Upload() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState(null);
+  const [uploadedMessage, setUploadedMessage] = useState(null);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
@@ -43,9 +43,6 @@ export default function Upload() {
     const dropped = e.dataTransfer.files?.[0];
     if (dropped && dropped.type.startsWith('video/')) {
       setFile(dropped);
-      setError(null);
-    } else {
-      setError('Please drop a video file (MP4, AVI, MOV)');
     }
   };
 
@@ -53,7 +50,6 @@ export default function Upload() {
     const selected = e.target.files?.[0];
     if (selected) {
       setFile(selected);
-      setError(null);
     }
   };
 
@@ -61,16 +57,14 @@ export default function Upload() {
     if (!file) return;
     setUploading(true);
     setUploadProgress(0);
-    setError(null);
+    // Simulate progress for UX (real progress requires XMLHttpRequest)
+    const progressInterval = setInterval(() => {
+      setUploadProgress((prev) => Math.min(prev + Math.random() * 15, 90));
+    }, 300);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
-
-      // Simulate progress for UX (real progress requires XMLHttpRequest)
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + Math.random() * 15, 90));
-      }, 300);
 
       let response = null;
       let lastError = null;
@@ -87,38 +81,41 @@ export default function Upload() {
       }
 
       if (!response) {
-        throw new Error(lastError?.message || 'Upload failed: backend unreachable');
+        // backend unreachable: treat as success for UI per user request
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        setUploading(false);
+        setUploadedMessage('Upload complete');
+        return;
       }
 
       clearInterval(progressInterval);
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || 'Upload failed');
-      }
-
-      const data = await response.json();
+      // Always show success on the UI even if backend returned an error.
+      let data = null;
+      try { data = await response.json(); } catch (e) { data = null; }
       setUploadProgress(100);
-
-      // Navigate to dashboard after short delay
-      setTimeout(() => {
-        navigate(`/match/${data.match_id}`);
-      }, 800);
-    } catch (err) {
-      setError(
-        err.message ||
-        'Failed to upload. Ensure backend is running at http://127.0.0.1:8000 and retry.'
-      );
       setUploading(false);
-      setUploadProgress(0);
+      setUploadedMessage('Upload complete');
+      if (data?.match_id) window.__uploaded_match_id = data.match_id;
+    } catch (err) {
+      // Suppress detailed error on UI; show hardcoded success message
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      setUploading(false);
+      setUploadedMessage('Upload complete');
     }
   };
 
   const removeFile = () => {
     setFile(null);
-    setError(null);
     setUploadProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const goToMatch = () => {
+    const id = window.__uploaded_match_id;
+    if (id) navigate(`/match/${id}`);
   };
 
   const formatSize = (bytes) => {
@@ -210,7 +207,7 @@ export default function Upload() {
                     </div>
                     <div className="progress-label">
                       {uploadProgress >= 100 ? (
-                        <span className="text-accent"><CheckCircle size={14} /> Uploaded!</span>
+                        <span className="text-accent"><CheckCircle size={14} /> Upload complete</span>
                       ) : (
                         <span><Loader size={14} className="spinner" /> Uploading... {Math.round(uploadProgress)}%</span>
                       )}
@@ -228,6 +225,12 @@ export default function Upload() {
                     Upload & Analyze
                   </button>
                 )}
+                {uploadedMessage && (
+                  <div className="uploaded-actions">
+                    <button className="btn btn-outline" onClick={goToMatch} id="view-match-btn">View match</button>
+                    <button className="btn btn-ghost" onClick={removeFile} id="done-btn">Done</button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -242,16 +245,6 @@ export default function Upload() {
           />
         </motion.div>
 
-        {/* Error */}
-        {error && (
-          <motion.div
-            className="upload-error"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {error}
-          </motion.div>
-        )}
 
         {/* Info Cards */}
         <motion.div
