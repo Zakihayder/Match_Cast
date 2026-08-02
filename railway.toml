@@ -1,14 +1,12 @@
 # Railway deployment config for MatchCast AI backend.
 # Leave projectId/serviceId blank if you will use the Railway UI to connect the repo.
 
+# Leave projectId/serviceId blank if you will use the Railway UI to connect the repo.
 projectId = ""
 serviceId = ""
 
-[build]
-builder = "Docker"
-
-[deploy]
-command = "docker build -t matchcast-ai ."
+# Railway will autodetect the Dockerfile when deploying via the UI; omit an explicit
+# build.builder entry to avoid parsing errors in some Railway environments.
 
 [variables]
 # Configure these in Railway environment variables rather than in git.
