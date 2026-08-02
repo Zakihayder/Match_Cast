@@ -1,0 +1,35 @@
+# MatchCast AI — Python Dependencies (mirror for backend build context)
+# This file mirrors the repo-root requirements.txt so Docker builds
+# that use the `backend/` directory as the build context include
+# the necessary dependencies.
+
+# === Core ML / CV ===
+ultralytics>=8.2.0          # YOLOv8 detection
+supervision>=0.21.0         # ByteTrack wrapper + annotation utilities
+opencv-python>=4.9.0
+numpy>=1.24.0
+
+# === Backend / API ===
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9     # file uploads
+python-dotenv>=1.0.0
+pydantic>=2.7.0
+
+# === Video assembly (highlight reel) ===
+# NOTE: FFmpeg must also be installed on PATH (Windows: https://www.gyan.dev/ffmpeg/builds/)
+moviepy>=1.0.3
+
+# === Data ===
+pandas>=2.2.0
+
+# === Utilities ===
+tqdm>=4.66.0
+Pillow>=10.3.0
+pytesseract>=0.3.10      # optional: jersey number OCR (requires Tesseract binary)
+
+# === Generative / Storage (uncomment once keys + SDK access exist) ===
+# genblaze-core
+# genblaze-s3
+# genblaze-gmicloud
+# boto3                     # fallback B2 client if not using genblaze-s3
