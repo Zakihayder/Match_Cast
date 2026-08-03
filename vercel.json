@@ -3,7 +3,7 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]
