@@ -85,10 +85,17 @@ export default function Landing() {
               <Upload size={18} />
               Upload Match
             </Link>
-            <button className="btn btn-outline btn-lg" id="hero-demo-btn">
+            <a
+              href="https://www.youtube.com/watch?v=-GqdlKqcFJo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline btn-lg"
+              id="hero-demo-btn"
+              style={{ textDecoration: 'none' }}
+            >
               <Play size={18} />
               Watch Demo
-            </button>
+            </a>
           </div>
         </motion.div>
 
