@@ -14,17 +14,8 @@ from pydantic import BaseModel
 
 from backend.config import settings
 from backend.routers.matches import _matches
-from storage.b2 import (
-    B2Storage,
-    storage_status,
-    upload_match_assets,
-    list_match_assets,
-    get_download_url,
-)
 
 router = APIRouter()
-
-_storage = B2Storage()
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +48,7 @@ def _run_upload(match_id: str, video_path: str, outputs_dir: str):
             )
 
     try:
+        from storage.b2 import upload_match_assets
         result = upload_match_assets(
             match_id=match_id,
             outputs_dir=outputs_dir,
@@ -107,7 +99,8 @@ async def upload_to_b2(match_id: str, background_tasks: BackgroundTasks):
     if match_id not in _matches:
         raise HTTPException(status_code=404, detail="Match not found")
 
-    if not _storage.status["configured"]:
+    from storage.b2 import storage_status as _b2_status_fn
+    if not _b2_status_fn()["configured"]:
         raise HTTPException(
             status_code=400,
             detail="B2 credentials not configured. Add B2_APPLICATION_KEY_ID and B2_APPLICATION_KEY to .env.",
@@ -159,7 +152,8 @@ async def get_upload_status(match_id: str):
 @router.get("/{match_id}/assets")
 async def get_match_assets(match_id: str):
     """List all assets stored in B2 for a match."""
-    if not _storage.status["configured"]:
+    from storage.b2 import storage_status as _b2_status_fn, list_match_assets
+    if not _b2_status_fn()["configured"]:
         raise HTTPException(status_code=400, detail="B2 not configured.")
 
     try:
@@ -172,7 +166,8 @@ async def get_match_assets(match_id: str):
 @router.get("/{match_id}/download-url")
 async def get_asset_download_url(match_id: str, filename: str):
     """Get a pre-signed download URL for a B2 asset."""
-    if not _storage.status["configured"]:
+    from storage.b2 import storage_status as _b2_status_fn, get_download_url
+    if not _b2_status_fn()["configured"]:
         raise HTTPException(status_code=400, detail="B2 not configured.")
 
     try:
@@ -185,4 +180,5 @@ async def get_asset_download_url(match_id: str, filename: str):
 @router.get("/status")
 async def get_storage_status():
     """Check B2 storage configuration status."""
+    from storage.b2 import storage_status
     return storage_status()

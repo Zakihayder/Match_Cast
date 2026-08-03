@@ -10,7 +10,6 @@ from fastapi import APIRouter, HTTPException
 
 from backend.config import settings
 from backend.routers.matches import _matches
-from perception.analytics import GameAnalyzer
 
 router = APIRouter()
 
@@ -35,6 +34,7 @@ async def get_match_analytics(match_id: str):
         with open(tracking_json, "r") as f:
             data = json.load(f)
             
+        from perception.analytics import GameAnalyzer
         analyzer = GameAnalyzer(data)
         report = analyzer.analyze()
         return report.model_dump()

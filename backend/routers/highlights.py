@@ -15,13 +15,8 @@ from pydantic import BaseModel
 
 from backend.config import settings
 from backend.routers.matches import _matches
-from perception.analytics import GameAnalyzer
-from generative.pipeline import HighlightPipeline, pipeline_status
 
 router = APIRouter()
-
-# Shared pipeline instance
-_pipeline = HighlightPipeline()
 
 
 # ---------------------------------------------------------------------------
@@ -66,6 +61,9 @@ def _run_highlight_pipeline(match_id: str, video_path: str):
             )
 
     try:
+        from perception.analytics import GameAnalyzer
+        from generative.pipeline import HighlightPipeline
+
         # Load tracking + run analytics
         tracking_json = settings.OUTPUTS_DIR / match_id / "tracking.json"
         with open(tracking_json, "r") as f:
@@ -75,6 +73,7 @@ def _run_highlight_pipeline(match_id: str, video_path: str):
         report = analyzer.analyze()
         analytics_dict = report.model_dump()
 
+        _pipeline = HighlightPipeline()
         result = _pipeline.generate(
             analytics=analytics_dict,
             video_path=video_path,
@@ -224,4 +223,5 @@ async def get_highlight_reel(match_id: str):
 @router.get("/pipeline-status")
 async def get_pipeline_status():
     """Check generative pipeline configuration status."""
+    from generative.pipeline import pipeline_status
     return pipeline_status()

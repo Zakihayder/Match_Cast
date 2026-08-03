@@ -6,12 +6,14 @@
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Health check endpoint
+# Health check endpoint — the /health endpoint is lightweight (no ML imports)
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 # Restart policy
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+# Reduce memory pressure: only 1 replica
+numReplicas = 1
 
 [variables]
 # Configure these in Railway's environment variables dashboard.

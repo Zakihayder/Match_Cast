@@ -11,7 +11,6 @@ from typing import Dict
 
 from backend.config import settings
 from backend.routers.matches import _matches
-from perception.pipeline import PerceptionPipeline
 
 router = APIRouter()
 
@@ -44,6 +43,7 @@ def run_pipeline_bg(match_id: str, video_path: str):
         if match_id in _matches:
             _matches[match_id].status = "processing"
             
+        from perception.pipeline import PerceptionPipeline
         src_points = PerceptionPipeline._parse_static_points(settings.STATIC_CAMERA_SRC_POINTS)
         pipeline = PerceptionPipeline(
             static_camera_mode=settings.STATIC_CAMERA_MODE,
