@@ -22,8 +22,8 @@ This repository delivers a fully implemented system covering:
 ## Team members
 
 - Zaki Haider
-- Zakihayder
-- mariam2009m44-lab
+- Mariam Fouad
+- Basmalah
 
 ## Architecture
 
