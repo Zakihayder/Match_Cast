@@ -180,5 +180,12 @@ async def get_asset_download_url(match_id: str, filename: str):
 @router.get("/status")
 async def get_storage_status():
     """Check B2 storage configuration status."""
-    from storage.b2 import storage_status
-    return storage_status()
+    try:
+        from storage.b2 import storage_status
+        return storage_status()
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
