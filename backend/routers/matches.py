@@ -26,7 +26,13 @@ class MatchInfo(BaseModel):
 
 
 # In-memory store for now — will move to DB/B2 metadata later
-_matches: dict[str, MatchInfo] = {}
+_matches: dict[str, MatchInfo] = {
+    "demo-match": MatchInfo(
+        match_id="demo-match",
+        filename="demo_match.mp4",
+        status="completed"
+    )
+}
 
 
 def scan_existing_videos():

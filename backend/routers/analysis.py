@@ -23,7 +23,8 @@ async def get_match_analytics(match_id: str):
     if match_id not in _matches:
         raise HTTPException(status_code=404, detail="Match not found")
         
-    tracking_json = settings.OUTPUTS_DIR / match_id / "tracking.json"
+    target_id = "colab_match_01" if match_id == "demo-match" else match_id
+    tracking_json = settings.OUTPUTS_DIR / target_id / "tracking.json"
     if not tracking_json.exists():
         raise HTTPException(
             status_code=400,
@@ -51,7 +52,8 @@ async def get_match_tracking_data(match_id: str):
     if match_id not in _matches:
         raise HTTPException(status_code=404, detail="Match not found")
         
-    tracking_json = settings.OUTPUTS_DIR / match_id / "tracking.json"
+    target_id = "colab_match_01" if match_id == "demo-match" else match_id
+    tracking_json = settings.OUTPUTS_DIR / target_id / "tracking.json"
     if not tracking_json.exists():
         raise HTTPException(
             status_code=400,

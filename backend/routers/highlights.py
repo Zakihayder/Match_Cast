@@ -123,7 +123,8 @@ async def generate_highlights(match_id: str, background_tasks: BackgroundTasks):
             detail="Match must be fully processed before generating highlights."
         )
 
-    tracking_json = settings.OUTPUTS_DIR / match_id / "tracking.json"
+    target_id = "colab_match_01" if match_id == "demo-match" else match_id
+    tracking_json = settings.OUTPUTS_DIR / target_id / "tracking.json"
     if not tracking_json.exists():
         raise HTTPException(status_code=400, detail="No tracking data found.")
 
@@ -161,7 +162,8 @@ async def generate_highlights(match_id: str, background_tasks: BackgroundTasks):
 async def get_highlight_status(match_id: str):
     """Poll highlight generation progress."""
     # Check if highlights already exist on disk even without a job
-    highlight_dir = settings.OUTPUTS_DIR / match_id / "highlights"
+    target_id = "colab_match_01" if match_id == "demo-match" else match_id
+    highlight_dir = settings.OUTPUTS_DIR / target_id / "highlights"
     commentary_file = highlight_dir / "commentary.json"
 
     with _highlight_lock:
@@ -190,7 +192,8 @@ async def get_highlight_status(match_id: str):
 @router.get("/{match_id}/commentary")
 async def get_commentary(match_id: str):
     """Retrieve generated commentary for a match."""
-    commentary_file = settings.OUTPUTS_DIR / match_id / "highlights" / "commentary.json"
+    target_id = "colab_match_01" if match_id == "demo-match" else match_id
+    commentary_file = settings.OUTPUTS_DIR / target_id / "highlights" / "commentary.json"
     if not commentary_file.exists():
         raise HTTPException(
             status_code=404,
@@ -206,7 +209,8 @@ async def get_commentary(match_id: str):
 @router.get("/{match_id}/reel")
 async def get_highlight_reel(match_id: str):
     """Download the generated highlight reel MP4."""
-    reel_path = settings.OUTPUTS_DIR / match_id / "highlights" / "highlight_reel.mp4"
+    target_id = "colab_match_01" if match_id == "demo-match" else match_id
+    reel_path = settings.OUTPUTS_DIR / target_id / "highlights" / "highlight_reel.mp4"
     if not reel_path.exists():
         raise HTTPException(
             status_code=404,

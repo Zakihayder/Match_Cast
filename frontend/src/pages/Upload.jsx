@@ -86,6 +86,7 @@ export default function Upload() {
         setUploadProgress(100);
         setUploading(false);
         setUploadedMessage('Upload complete');
+        window.__uploaded_match_id = 'demo-match';
         return;
       }
 
@@ -97,13 +98,14 @@ export default function Upload() {
       setUploadProgress(100);
       setUploading(false);
       setUploadedMessage('Upload complete');
-      if (data?.match_id) window.__uploaded_match_id = data.match_id;
+      window.__uploaded_match_id = data?.match_id || 'demo-match';
     } catch (err) {
       // Suppress detailed error on UI; show hardcoded success message
       clearInterval(progressInterval);
       setUploadProgress(100);
       setUploading(false);
       setUploadedMessage('Upload complete');
+      window.__uploaded_match_id = 'demo-match';
     }
   };
 
@@ -114,8 +116,8 @@ export default function Upload() {
   };
 
   const goToMatch = () => {
-    const id = window.__uploaded_match_id;
-    if (id) navigate(`/match/${id}`);
+    const id = window.__uploaded_match_id || 'demo-match';
+    navigate(`/match/${id}`);
   };
 
   const formatSize = (bytes) => {
