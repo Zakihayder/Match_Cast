@@ -1,19 +1,25 @@
 # Railway deployment config for MatchCast AI backend.
-# Leave projectId/serviceId blank if you will use the Railway UI to connect the repo.
+# Railway will autodetect the Dockerfile and build accordingly.
 
-# Leave projectId/serviceId blank if you will use the Railway UI to connect the repo.
-projectId = ""
-serviceId = ""
+[build]
+# Use the Dockerfile at the repo root
+dockerfilePath = "Dockerfile"
 
-# Railway will autodetect the Dockerfile when deploying via the UI; omit an explicit
-# build.builder entry to avoid parsing errors in some Railway environments.
+[deploy]
+# Health check endpoint
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+# Restart policy
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
 
 [variables]
-# Configure these in Railway environment variables rather than in git.
+# Configure these in Railway's environment variables dashboard.
 # GENBLAZE_API_KEY = ""
 # GMI_CLOUD_API_KEY = ""
 # B2_APPLICATION_KEY_ID = ""
 # B2_APPLICATION_KEY = ""
 B2_BUCKET_NAME = "matchcast-assets"
-FRONTEND_URL = "https://<your-vercel-domain>"
-CORS_ORIGINS = "https://<your-vercel-domain>"
+# Set these after deploying your Vercel frontend:
+# FRONTEND_URL = "https://matchcast-ai.vercel.app"
+# CORS_ORIGINS = "https://matchcast-ai.vercel.app"

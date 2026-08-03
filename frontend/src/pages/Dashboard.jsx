@@ -7,11 +7,8 @@ import {
   Film, Download, Volume2, FileText, Sparkles, Cloud, Upload, ExternalLink,
   HardDrive, CheckCircle
 } from 'lucide-react';
+import { API_BASE, API_BASE_URL } from '../config';
 import './Dashboard.css';
-
-// Base backend URL config (matches Upload page behavior)
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-const API_BASE_URL = `${API_BASE}/api`;
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: <BarChart3 size={16} /> },

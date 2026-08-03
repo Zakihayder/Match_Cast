@@ -11,9 +11,9 @@ import {
   BarChart3,
   Brain,
 } from 'lucide-react';
+import { API_BASE } from '../config';
 import './Upload.css';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const API_BASE_FALLBACKS = [
   API_BASE,
   'http://127.0.0.1:8000',

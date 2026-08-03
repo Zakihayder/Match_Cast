@@ -6,7 +6,7 @@ __pycache__
 venv/
 .venv/
 node_modules/
-frontend/node_modules/
+frontend/
 dist/
 build/
 .git
@@ -15,19 +15,12 @@ build/
 **/*.py[cod]
 **/*.log
 
-# Exclude large data directories and artifacts not needed at runtime
-data/
-data/**
-data/models/
-data/outputs/
-data/videos/
-
 # Notebooks, tests and local caches
 notebooks/
 tests/
 .pytest_cache/
+.claude-dev-helper/
 
-# Media artifacts
 *.mp4
 *.mov
 *.avi
@@ -35,3 +28,4 @@ tests/
 # Editor/project config
 .vscode/
 .idea/
+
