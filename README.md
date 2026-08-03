@@ -1,7 +1,7 @@
 # MatchCast AI
 
-Try it out: https://matchcastai.netlify.app
-MatchCast AI is a complete football video intelligence platform with end-to-end match analysis, commentary generation, voiceover, highlight reel assembly, and cloud-backed provenance storage.
+- Try it out: https://matchcastai.netlify.app
+- MatchCast AI is a complete football video intelligence platform with end-to-end match analysis, commentary generation, voiceover, highlight reel assembly, and cloud-backed provenance storage.
 
 ## What is implemented
 
